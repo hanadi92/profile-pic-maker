@@ -11,6 +11,7 @@ import {
   FaGitlab,
   FaXTwitter,
   FaBluesky,
+  FaTelegram,
 } from 'react-icons/fa6';
 
 export default function Home() {
@@ -68,7 +69,7 @@ export default function Home() {
         setLoader(true);
         const response = await fetch(
           `/api/retrieve-profile-pic?username=${userProvidedUsername}&platform=${platform}`,
-        ).then((res) => (res.ok ? res.json() : null));
+        ).then((res) => (res.ok ? res : null));
         setLoader(false);
         if (response === null) {
           alert(
@@ -76,9 +77,24 @@ export default function Home() {
           );
           return;
         }
-        setUserImageUrl(response.profilePicUrl);
+
+        const contentType = response.headers.get('Content-Type') ?? '';
+        if (contentType.startsWith('image/')) {
+          return response.arrayBuffer().then((buffer) => {
+            const blob = new Blob([buffer], { type: contentType });
+            const imageUrl = URL.createObjectURL(blob);
+            setUserImageUrl(imageUrl);
+            return null;
+          });
+        }
+
+        return response
+          .json()
+          .then((data) => setUserImageUrl(data?.profilePicUrl ?? null));
       } catch (error) {
         console.error('Error fetching profile picture:', error);
+      } finally {
+        setLoader(false);
       }
     }
   };
@@ -260,6 +276,14 @@ export default function Home() {
                 className="rounded-full my-2 py-3 px-2 w-full border border-gray-900 text-xl"
               >
                 Use <FaBluesky className="inline mb-1" /> Profile Pic
+              </button>
+              <button
+                onClick={async () =>
+                  await handleRetrieveProfilePicture(SocialPlatform.Telegram)
+                }
+                className="rounded-full my-2 py-3 px-2 w-full border border-gray-900 text-xl"
+              >
+                Use <FaTelegram className="inline mb-1" /> Profile Pic
               </button>
             </>
           )}

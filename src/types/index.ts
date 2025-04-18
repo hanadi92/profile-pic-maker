@@ -3,4 +3,5 @@ export enum SocialPlatform {
   Github = 'github',
   Gitlab = 'gitlab',
   Bluesky = 'bluesky',
+  Telegram = 'telegram',
 }

@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   const username = searchParams.get('username');
   const platform = searchParams.get('platform') as SocialPlatform;
 
-  let profilePicUrl = '/user.jpg';
+  let profilePicUrl: string | ArrayBuffer | null = '/user.jpg';
 
   if (
     !username ||
@@ -31,6 +31,18 @@ export async function GET(request: NextRequest) {
     case SocialPlatform.Bluesky:
       profilePicUrl = await fetchBlueskyProfilePic(username);
       break;
+    case SocialPlatform.Telegram:
+      profilePicUrl = await fetchTelegramProfilePic(username);
+      if (profilePicUrl === null) {
+        return NextResponse.json({}, { status: 404 });
+      }
+      return new NextResponse(profilePicUrl, {
+        status: 200,
+        headers: {
+          'Content-Type': 'image/jpeg',
+          'Content-Disposition': 'inline',
+        },
+      });
   }
 
   if (profilePicUrl === null) {
@@ -88,4 +100,19 @@ const fetchBlueskyProfilePic = async (username: string) => {
     return null;
   }
   return response.avatar;
+};
+
+const fetchTelegramProfilePic = async (username: string) => {
+  return fetch(`/fetch?username=${username}`) // my secret domain
+    .then(async (res) => {
+      if (!res.ok) {
+        return null;
+      }
+
+      return await res.arrayBuffer();
+    })
+    .catch((error) => {
+      console.error('Error fetching profile picture:', error);
+      return null;
+    });
 };
